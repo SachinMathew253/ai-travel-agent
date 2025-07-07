@@ -186,6 +186,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed migration information.
 
 - Python 3.11 or higher
 - Google API Key (get from [AI Studio](https://aistudio.google.com/app/apikey))
+- OpenWeatherMap API Key (get from [OpenWeatherMap](https://openweathermap.org/api)) - **Free tier available**
 
 ### Quick Setup (Recommended)
 
@@ -216,10 +217,16 @@ cd /Users/sachinmathew/personal/ai_agent
 
 2. **Virtual environment is already created and configured**
 
-3. **Set your Google API Key**:
+3. **Set your API Keys**:
 ```bash
 export GOOGLE_API_KEY="your-google-api-key-here"
+export OPENWEATHER_API_KEY="your-openweathermap-api-key-here"
 ```
+
+   **For the Weather Service**:
+   - Sign up at [OpenWeatherMap](https://openweathermap.org/api)
+   - Free tier includes: 1,000 calls/day, current weather + 5-day forecast
+   - Copy your API key and set the `OPENWEATHER_API_KEY` environment variable
 
 4. **Install additional dependencies if needed**:
 ```bash

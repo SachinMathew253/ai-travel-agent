@@ -13,6 +13,7 @@ class Config:
     
     # API Keys
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
     
     # Server Ports
     WEATHER_SERVER_PORT = int(os.getenv("WEATHER_SERVER_PORT", "8000"))
@@ -47,6 +48,9 @@ class Config:
         
         if not self.GOOGLE_API_KEY or self.GOOGLE_API_KEY == "PLACEHOLDER_API_KEY":
             issues.append("GOOGLE_API_KEY not set or is placeholder")
+            
+        if not self.OPENWEATHER_API_KEY:
+            issues.append("OPENWEATHER_API_KEY not set")
         
         return {
             "valid": len(issues) == 0,
@@ -58,7 +62,8 @@ class Config:
                 "activity_port": self.ACTIVITY_SERVER_PORT,
                 "web_port": self.WEB_UI_PORT,
                 "log_level": self.LOG_LEVEL,
-                "api_key_set": bool(self.GOOGLE_API_KEY and self.GOOGLE_API_KEY != "PLACEHOLDER_API_KEY")
+                "api_key_set": bool(self.GOOGLE_API_KEY and self.GOOGLE_API_KEY != "PLACEHOLDER_API_KEY"),
+                "openweather_api_key_set": bool(self.OPENWEATHER_API_KEY)
             }
         }
 

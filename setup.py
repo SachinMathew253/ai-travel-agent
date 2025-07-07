@@ -68,6 +68,11 @@ def create_env_file():
 # Get your key from: https://aistudio.google.com/app/apikey
 GOOGLE_API_KEY=your-google-api-key-here
 
+# Required: OpenWeatherMap API Key for Weather Service
+# Get your free API key from: https://openweathermap.org/api
+# Free tier: 1,000 calls/day, current weather + 5-day forecast
+OPENWEATHER_API_KEY=your-openweathermap-api-key-here
+
 # Optional: Application Configuration
 FLASK_ENV=development
 LOG_LEVEL=INFO
@@ -83,7 +88,9 @@ WEB_APP_PORT=5000
     try:
         env_file.write_text(env_template)
         print("✅ .env file template created")
-        print("⚠️  Please edit .env and add your Google API key")
+        print("⚠️  Please edit .env and add your API keys:")
+        print("   - Google API key for Gemini AI")
+        print("   - OpenWeatherMap API key for weather data")
         return True
     except Exception as e:
         print(f"❌ Failed to create .env file: {e}")

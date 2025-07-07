@@ -27,7 +27,7 @@ class AgentFactory:
                 "conditions, and helpful travel advice based on weather."
             ),
             tools=[weather_toolset],
-            model=Gemini(model_name="gemini-2.0-flash-exp", api_key=config.GOOGLE_API_KEY)
+            model=Gemini(model_name="gemini-2.0-flash", api_key=config.GOOGLE_API_KEY)
         )
     
     @staticmethod
@@ -44,7 +44,7 @@ class AgentFactory:
                 "Always offer multiple options when available."
             ),
             tools=[flight_toolset],
-            model=Gemini(model_name="gemini-2.0-flash-exp", api_key=config.GOOGLE_API_KEY)
+            model=Gemini(model_name="gemini-2.0-flash", api_key=config.GOOGLE_API_KEY)
         )
     
     @staticmethod
@@ -61,7 +61,7 @@ class AgentFactory:
                 "Consider the user's budget and preferences."
             ),
             tools=[hotel_toolset],
-            model=Gemini(model_name="gemini-2.0-flash-exp", api_key=config.GOOGLE_API_KEY)
+            model=Gemini(model_name="gemini-2.0-flash", api_key=config.GOOGLE_API_KEY)
         )
     
     @staticmethod
@@ -78,7 +78,7 @@ class AgentFactory:
                 "Consider the user's interests and available time."
             ),
             tools=[activity_toolset],
-            model=Gemini(model_name="gemini-2.0-flash-exp", api_key=config.GOOGLE_API_KEY)
+            model=Gemini(model_name="gemini-2.0-flash", api_key=config.GOOGLE_API_KEY)
         )
     
     @staticmethod
@@ -115,7 +115,7 @@ class AgentFactory:
                 "Do NOT ask follow-up questions - use reasonable defaults and provide complete information."
             ),
             tools=all_tools,
-            model=Gemini(model_name="gemini-2.0-flash-exp", api_key=config.GOOGLE_API_KEY),
+            model=Gemini(model_name="gemini-2.0-flash", api_key=config.GOOGLE_API_KEY),
             generate_content_config=GenerateContentConfig(
                 automatic_function_calling=AutomaticFunctionCallingConfig()
             )

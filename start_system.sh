@@ -27,7 +27,7 @@ if [ ! -f ".env" ]; then
     echo "FLIGHT_SERVER_PORT=8001" >> .env
     echo "HOTEL_SERVER_PORT=8002" >> .env
     echo "ACTIVITY_SERVER_PORT=8003" >> .env
-    echo "WEB_SERVER_PORT=5000" >> .env
+    echo "WEB_UI_PORT=8080" >> .env
     echo "LOG_LEVEL=INFO" >> .env
 fi
 
@@ -192,7 +192,7 @@ fi
 
 echo ""
 echo "🌐 Starting Web Interface..."
-echo "📋 Available at: http://localhost:${WEB_SERVER_PORT:-5000}"
+echo "📋 Available at: http://localhost:${WEB_UI_PORT:-8080}"
 echo ""
 echo "🛑 To stop all services, press Ctrl+C or run: ./stop_services.sh"
 echo ""

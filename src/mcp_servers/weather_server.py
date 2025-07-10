@@ -21,7 +21,7 @@ class WeatherServer(BaseMCPServer):
         self.base_url_v2 = "https://api.openweathermap.org/data/2.5"
         self.geocoding_url = "https://api.openweathermap.org/geo/1.0"
         self.api_key = config.OPENWEATHER_API_KEY
-        self.use_one_call_api = True  # Try One Call API first, fallback to basic API
+        self.use_one_call_api = False  # Disable One Call API, use basic API only
         
         if not self.api_key:
             self.logger.warning("OpenWeatherMap API key not configured. Set OPENWEATHER_API_KEY environment variable.")
@@ -405,43 +405,97 @@ class WeatherServer(BaseMCPServer):
                 
                 # Try One Call API first
                 if self.use_one_call_api:
-                    return self.get_current_weather(city)
+                    # Get coordinates for the city
+                    coord_result = self._get_coordinates(city)
+                    if not coord_result:
+                        # Fall back to basic API if geocoding fails
+                        self.logger.warning(f"Could not get coordinates for {city}, falling back to basic API")
+                        self.use_one_call_api = False
+                    else:
+                        lat, lon, city_name, country = coord_result
+                        
+                        # Use One Call API 3.0 for comprehensive weather data
+                        params = {
+                            'lat': lat,
+                            'lon': lon,
+                            'units': 'metric',
+                            'exclude': 'minutely,hourly,daily,alerts'  # Only get current weather
+                        }
+                        
+                        weather_data = self._make_api_request("onecall", params)
+                        
+                        if isinstance(weather_data, dict) and "error" in weather_data:
+                            # One Call API failed, fall back to basic API
+                            self.logger.warning("One Call API failed, falling back to basic API")
+                            self.use_one_call_api = False
+                        else:
+                            current = weather_data.get('current', {})
+                            
+                            # Extract comprehensive current weather information
+                            result = {
+                                "city": city_name,
+                                "country": country,
+                                "coordinates": {"lat": lat, "lon": lon},
+                                "timezone": weather_data.get('timezone', ''),
+                                "current": {
+                                    "datetime": datetime.fromtimestamp(current.get('dt', 0)).isoformat(),
+                                    "temperature_c": round(current.get('temp', 0), 1),
+                                    "feels_like_c": round(current.get('feels_like', 0), 1),
+                                    "pressure_hpa": current.get('pressure', 0),
+                                    "humidity_percent": current.get('humidity', 0),
+                                    "weather": {
+                                        "main": current.get('weather', [{}])[0].get('main', ''),
+                                        "description": current.get('weather', [{}])[0].get('description', ''),
+                                        "icon": current.get('weather', [{}])[0].get('icon', '')
+                                    },
+                                    "wind": {
+                                        "speed_ms": current.get('wind_speed', 0),
+                                        "direction_deg": current.get('wind_deg', 0)
+                                    },
+                                    "clouds_percent": current.get('clouds', 0),
+                                    "visibility_m": current.get('visibility', 0)
+                                }
+                            }
+                            
+                            self.logger.info(f"Current weather fetched for {city_name}: {result['current']['weather']['description']}, {result['current']['temperature_c']}°C")
+                            return json.dumps(result)
                 
-                # Fall back to basic weather API
-                params = {
-                    'q': city,
-                    'units': 'metric'
-                }
-                
-                weather_data = self._make_api_request("weather", params, use_v3=False)
-                
-                if isinstance(weather_data, dict) and "error" in weather_data:
-                    return json.dumps(weather_data)
-                
-                # Extract basic weather information
-                result = {
-                    "city": weather_data.get('name', city),
-                    "country": weather_data.get('sys', {}).get('country', ''),
-                    "weather": {
-                        "main": weather_data.get('weather', [{}])[0].get('main', ''),
-                        "description": weather_data.get('weather', [{}])[0].get('description', ''),
-                        "icon": weather_data.get('weather', [{}])[0].get('icon', '')
-                    },
-                    "temperature_c": round(weather_data.get('main', {}).get('temp', 0), 1),
-                    "feels_like_c": round(weather_data.get('main', {}).get('feels_like', 0), 1),
-                    "pressure_hpa": weather_data.get('main', {}).get('pressure', 0),
-                    "humidity_percent": weather_data.get('main', {}).get('humidity', 0),
-                    "wind": {
-                        "speed_ms": weather_data.get('wind', {}).get('speed', 0),
-                        "direction_deg": weather_data.get('wind', {}).get('deg', 0)
-                    },
-                    "clouds_percent": weather_data.get('clouds', {}).get('all', 0),
-                    "visibility_m": weather_data.get('visibility', 0),
-                    "timestamp": datetime.fromtimestamp(weather_data.get('dt', 0)).isoformat()
-                }
-                
-                self.logger.info(f"Weather fetched for {city}: {result['weather']['description']}, {result['temperature_c']}°C")
-                return json.dumps(result)
+                # Use basic weather API (either as fallback or primary)
+                if not self.use_one_call_api:
+                    params = {
+                        'q': city,
+                        'units': 'metric'
+                    }
+                    
+                    weather_data = self._make_api_request("weather", params, use_v3=False)
+                    
+                    if isinstance(weather_data, dict) and "error" in weather_data:
+                        return json.dumps(weather_data)
+                    
+                    # Extract basic weather information
+                    result = {
+                        "city": weather_data.get('name', city),
+                        "country": weather_data.get('sys', {}).get('country', ''),
+                        "weather": {
+                            "main": weather_data.get('weather', [{}])[0].get('main', ''),
+                            "description": weather_data.get('weather', [{}])[0].get('description', ''),
+                            "icon": weather_data.get('weather', [{}])[0].get('icon', '')
+                        },
+                        "temperature_c": round(weather_data.get('main', {}).get('temp', 0), 1),
+                        "feels_like_c": round(weather_data.get('main', {}).get('feels_like', 0), 1),
+                        "pressure_hpa": weather_data.get('main', {}).get('pressure', 0),
+                        "humidity_percent": weather_data.get('main', {}).get('humidity', 0),
+                        "wind": {
+                            "speed_ms": weather_data.get('wind', {}).get('speed', 0),
+                            "direction_deg": weather_data.get('wind', {}).get('deg', 0)
+                        },
+                        "clouds_percent": weather_data.get('clouds', {}).get('all', 0),
+                        "visibility_m": weather_data.get('visibility', 0),
+                        "timestamp": datetime.fromtimestamp(weather_data.get('dt', 0)).isoformat()
+                    }
+                    
+                    self.logger.info(f"Weather fetched for {city}: {result['weather']['description']}, {result['temperature_c']}°C")
+                    return json.dumps(result)
                 
             except Exception as e:
                 self.logger.error(f"Error in get_weather for {city}: {str(e)}")

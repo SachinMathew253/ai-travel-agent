@@ -1,6 +1,7 @@
 """
 Main travel planning system implementation.
 """
+import asyncio
 import time
 from typing import Dict, Any
 from google.adk.runners import Runner
@@ -13,7 +14,7 @@ from utils.logging import setup_logging
 logger = setup_logging(__name__)
 
 class TravelPlanningSystem:
-    """Main travel planning system orchestrator."""
+    """Main travel planning system orchestrator with async context management."""
     
     def __init__(self):
         """Initialize the travel planning system."""
@@ -39,7 +40,50 @@ class TravelPlanningSystem:
             session_service=self.session_service
         )
         
+        # Track if we're in an async context
+        self._event_loop = None
+        self._loop_created = False
+        
         logger.info("Travel Planning System initialized successfully")
+    
+    async def __aenter__(self):
+        """Async context manager entry."""
+        logger.debug("Entering async context for TravelPlanningSystem")
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        logger.debug("Exiting async context for TravelPlanningSystem")
+        # Clean up toolsets
+        AgentFactory.cleanup_toolsets()
+    
+    def _get_or_create_event_loop(self):
+        """Get or create an event loop for sync calls."""
+        try:
+            # Try to get the current event loop
+            loop = asyncio.get_running_loop()
+            self._event_loop = loop
+            self._loop_created = False
+            return loop
+        except RuntimeError:
+            # No event loop running, create a new one
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            self._event_loop = loop
+            self._loop_created = True
+            return loop
+    
+    def _cleanup_event_loop(self):
+        """Clean up the event loop if we created it."""
+        if self._loop_created and self._event_loop:
+            try:
+                self._event_loop.close()
+                logger.debug("Cleaned up event loop")
+            except Exception as e:
+                logger.warning(f"Error cleaning up event loop: {e}")
+            finally:
+                self._event_loop = None
+                self._loop_created = False
     
     def _create_agents(self) -> Dict[str, Any]:
         """Create all travel planning agents."""
@@ -130,6 +174,67 @@ class TravelPlanningSystem:
             }
         except Exception as e:
             logger.error(f"Error in coordinated planning: {str(e)}")
+            return {
+                "status": "error",
+                "workflow_type": "coordinated",
+                "error": str(e)
+            }
+    
+    def plan_trip_coordinated_sync(self, user_query: str) -> Dict[str, Any]:
+        """Synchronous wrapper for coordinated travel planning with proper async context management."""
+        try:
+            # Check if we're already in an async context
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context, run directly
+                logger.warning("Already in async context, this may cause issues. Consider using async version.")
+                return asyncio.create_task(self.plan_trip_coordinated(user_query))
+            except RuntimeError:
+                # No event loop running, create a proper async context
+                async def run_with_context():
+                    async with self:
+                        return await self.plan_trip_coordinated(user_query)
+                
+                # Create new event loop for this operation
+                loop = asyncio.new_event_loop()
+                old_loop = None
+                try:
+                    # Save current loop if any
+                    try:
+                        old_loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        pass
+                    
+                    # Set new loop as current
+                    asyncio.set_event_loop(loop)
+                    
+                    # Run the planning operation
+                    result = loop.run_until_complete(run_with_context())
+                    return result
+                
+                finally:
+                    # Clean up
+                    try:
+                        # Cancel any remaining tasks
+                        pending = asyncio.all_tasks(loop)
+                        for task in pending:
+                            task.cancel()
+                        
+                        # Wait for cancellation to complete
+                        if pending:
+                            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                        
+                        # Close the loop
+                        loop.close()
+                    except Exception as e:
+                        logger.warning(f"Error during event loop cleanup: {e}")
+                    
+                    # Restore old loop if it existed
+                    if old_loop:
+                        asyncio.set_event_loop(old_loop)
+        
+        except Exception as e:
+            logger.error(f"Error in synchronous coordinated planning: {str(e)}")
             return {
                 "status": "error",
                 "workflow_type": "coordinated",

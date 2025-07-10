@@ -12,8 +12,8 @@ class Config:
     """Configuration class for the travel planning system."""
     
     # API Keys
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyD0maW2NwN44PWYrC9nCJk0eR3eTOsuydk")
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "dac87988fc787db008d269e25252a97a")
     
     # Server Ports
     WEATHER_SERVER_PORT = int(os.getenv("WEATHER_SERVER_PORT", "8000"))
